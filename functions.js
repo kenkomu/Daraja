@@ -23,8 +23,8 @@ function registerURLs(accessToken) {
         return;
       }
       
-      // Get the ngrok URL from environment variable or configure it directly
-      const NGROK_URL = process.env.NGROK_URL || 'https://5c4f-105-163-0-46.ngrok-free.app';
+      // Update URLs to production
+      const PROD_URL = 'https://daraja-production-1379.up.railway.app';
       
       unirest('POST', 'https://sandbox.safaricom.co.ke/mpesa/c2b/v2/registerurl')
         .headers({
@@ -34,8 +34,8 @@ function registerURLs(accessToken) {
         .send(JSON.stringify({
           "ShortCode": "174379",
           "ResponseType": "Completed",
-          "ConfirmationURL": `${NGROK_URL}/confirmation`,
-          "ValidationURL": `${NGROK_URL}/validation`
+          "ConfirmationURL": `${PROD_URL}/confirmation`,
+          "ValidationURL": `${PROD_URL}/validation`
         }))
         .end(res => {
           if (res.error) {

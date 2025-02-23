@@ -1,63 +1,79 @@
 const express = require('express');
+const cors = require('cors');
+const compression = require('compression');
 const app = express();
-app.use(express.json());
 
-// Request logging middleware
-app.use((req, res, next) => {
-    console.log('\n--------------------');
-    console.log('New Request:', new Date().toISOString());
-    console.log('Method:', req.method);
-    console.log('URL:', req.url);
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('--------------------\n');
-    next();
+// Add essential middleware
+app.use(compression());
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Health check endpoint - keep this simple and fast
+app.get('/', (_, res) => {
+    res.send('OK');
 });
 
-// Validation URL endpoint
+// Simplified validation endpoint
 app.post('/validation', (req, res) => {
-    console.log('\n=== Validation Request ===');
-    console.log('Transaction Type:', req.body.TransactionType);
-    console.log('Transaction ID:', req.body.TransID);
-    console.log('Transaction Time:', req.body.TransTime);
-    console.log('Transaction Amount:', req.body.TransAmount);
-    console.log('Business ShortCode:', req.body.BusinessShortCode);
-    console.log('Bill Reference:', req.body.BillRefNumber);
-    console.log('MSISDN:', req.body.MSISDN);
-    console.log('========================\n');
-
-    res.json({
-        "ResultCode": "0",
-        "ResultDesc": "Accepted"
-    });
+    try {
+        // Log request
+        console.log('Validation Request:', new Date().toISOString());
+        
+        // Send immediate response
+        res.status(200).json({
+            ResultCode: "0",
+            ResultDesc: "Accepted"
+        });
+        
+        // Log request details after response
+        console.log('Validation Details:', req.body);
+    } catch (error) {
+        console.error('Validation Error:', error);
+        res.status(200).json({
+            ResultCode: "1",
+            ResultDesc: "Server Error"
+        });
+    }
 });
 
-// Confirmation URL endpoint
+// Simplified confirmation endpoint
 app.post('/confirmation', (req, res) => {
-    console.log('\n=== Confirmation Request ===');
-    console.log('Transaction Type:', req.body.TransactionType);
-    console.log('Transaction ID:', req.body.TransID);
-    console.log('Transaction Time:', req.body.TransTime);
-    console.log('Transaction Amount:', req.body.TransAmount);
-    console.log('Business ShortCode:', req.body.BusinessShortCode);
-    console.log('Bill Reference:', req.body.BillRefNumber);
-    console.log('Invoice Number:', req.body.InvoiceNumber);
-    console.log('Org Account Balance:', req.body.OrgAccountBalance);
-    console.log('Third Party ID:', req.body.ThirdPartyTransID);
-    console.log('MSISDN:', req.body.MSISDN);
-    console.log('First Name:', req.body.FirstName);
-    console.log('Middle Name:', req.body.MiddleName);
-    console.log('Last Name:', req.body.LastName);
-    console.log('==========================\n');
+    try {
+        // Log request
+        console.log('Confirmation Request:', new Date().toISOString());
+        
+        // Send immediate response
+        res.status(200).json({
+            ResultCode: "0",
+            ResultDesc: "Success"
+        });
+        
+        // Log request details after response
+        console.log('Confirmation Details:', req.body);
+    } catch (error) {
+        console.error('Confirmation Error:', error);
+        res.status(200).json({
+            ResultCode: "1",
+            ResultDesc: "Server Error"
+        });
+    }
+});
 
-    res.json({
-        "ResultCode": "0",
-        "ResultDesc": "Success"
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Server Error:', err);
+    res.status(200).json({
+        ResultCode: "1",
+        ResultDesc: "Server Error"
     });
 });
 
-const port = 3000;
-app.listen(port, () => {
+// Start server
+const port = process.env.PORT || 3000;
+const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
-    console.log('Waiting for M-Pesa callbacks...');
 });
+
+// Set timeout
+server.timeout = 30000;

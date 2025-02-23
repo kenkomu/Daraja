@@ -1,0 +1,2 @@
+//add node modules folder   to the .gitignore file
+node_modules
