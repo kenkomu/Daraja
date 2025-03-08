@@ -30,7 +30,8 @@ This project implements Safaricom's M-Pesa C2B (Customer to Business) API integr
 
 3. Second terminal: Update .env and start server
 
-```echo "NGROK_URL=<your_ngrok_url" > .env``
+```echo "NGROK_URL=<your_ngrok_url" > .env```
+
 ```node server.js```
 
 4. Third terminal: Run the initialization
