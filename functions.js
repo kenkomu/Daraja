@@ -1,4 +1,5 @@
 const unirest = require('unirest');
+require('dotenv').config();
 
 function generateAccessToken() {
   return new Promise((resolve, reject) => {
@@ -35,28 +36,45 @@ function registerURLs(accessToken) {
       return;
     }
 
-    console.log('Registering URLs...');
+    const NGROK_URL = process.env.NGROK_URL;
+    if (!NGROK_URL) {
+      reject(new Error('NGROK_URL environment variable is not set'));
+      return;
+    }
+
+    console.log('Using NGROK URL:', NGROK_URL);
     
-    // Update URLs to production
-    const PROD_URL = 'https://daraja-production-1379.up.railway.app';
-    
-    unirest('POST', 'https://sandbox.safaricom.co.ke/mpesa/c2b/v2/registerurl')
+    // Changed to v1 endpoint and updated request format
+    unirest('POST', 'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/registerurl')
       .headers({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       })
-      .send(JSON.stringify({
-        "ShortCode": "174379",
-        "ResponseType": "Completed",
-        "ConfirmationURL": `${PROD_URL}/confirmation`,
-        "ValidationURL": `${PROD_URL}/validation`
-      }))
+      .send({
+        ShortCode: "174379",
+        ResponseType: "Completed",
+        ConfirmationURL: `${NGROK_URL}/confirmation`,
+        ValidationURL: `${NGROK_URL}/validation`
+      })
       .end(res => {
         if (res.error) {
+          // Handle specific error codes
+          if (res.status === 500 && res.body?.errorCode === '500.003.1001') {
+            console.log('Retrying URL registration...');
+            // Wait 2 seconds and retry
+            setTimeout(() => {
+              this.registerURLs(accessToken)
+                .then(resolve)
+                .catch(reject);
+            }, 2000);
+            return;
+          }
+
           const errorBody = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
           console.error('URL registration error:', {
             error: res.error,
-            body: errorBody
+            body: errorBody,
+            url: NGROK_URL
           });
           reject(new Error(`Registration failed: ${errorBody.errorMessage || 'Unknown error'}`));
           return;
@@ -69,10 +87,7 @@ function registerURLs(accessToken) {
           console.log('URL registration successful:', responseBody);
           resolve(responseBody);
         } catch (error) {
-          console.error('Error parsing registration response:', {
-            error: error,
-            raw_body: res.raw_body
-          });
+          console.error('Error parsing registration response:', error);
           reject(error);
         }
       });
@@ -88,41 +103,61 @@ function simulateC2B(accessToken) {
 
     console.log('Simulating C2B transaction...');
     
+    const requestBody = {
+      ShortCode: "174379",
+      CommandID: "CustomerPayBillOnline",
+      Amount: "100",
+      Msisdn: "254708374149",
+      BillRefNumber: "test001"
+    };
+
+    console.log('Simulation request:', requestBody);
+
     unirest('POST', 'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/simulate')
       .headers({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       })
-      .send(JSON.stringify({
-        "ShortCode": "174379",
-        "CommandID": "CustomerPayBillOnline",
-        "Amount": "100",
-        "Msisdn": "254708374149",
-        "BillRefNumber": "test001"
-      }))
+      .send(requestBody)  // Send plain object, unirest will handle JSON stringification
       .end(res => {
+        // Check if response exists
+        if (!res) {
+          console.error('No response received');
+          reject(new Error('No response received'));
+          return;
+        }
+
+        // Log full response for debugging
+        console.log('Raw response:', res.raw_body);
+        console.log('Response status:', res.status);
+
         if (res.error) {
-          const errorBody = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
-          console.error('Simulation error:', {
-            error: res.error,
-            body: errorBody
+          console.error('Response error:', {
+            status: res.status,
+            body: res.body,
+            error: res.error
           });
-          reject(new Error(`Simulation failed: ${errorBody.errorMessage || 'Unknown error'}`));
+
+          // Handle specific error cases
+          if (res.status === 500) {
+            reject(new Error('Server error: The simulation request failed. Please verify your parameters.'));
+            return;
+          }
+
+          reject(new Error(`Simulation failed: ${res.error.message || 'Unknown error'}`));
           return;
         }
         
         try {
-          const responseBody = typeof res.raw_body === 'string'
-            ? JSON.parse(res.raw_body)
+          const responseBody = typeof res.raw_body === 'string' 
+            ? JSON.parse(res.raw_body) 
             : res.raw_body;
-          console.log('Simulation successful:', responseBody);
+
+          console.log('Simulation response:', responseBody);
           resolve(responseBody);
         } catch (error) {
-          console.error('Error parsing simulation response:', {
-            error: error,
-            raw_body: res.raw_body
-          });
-          reject(error);
+          console.error('Parse error:', error);
+          reject(new Error('Failed to parse simulation response'));
         }
       });
   });

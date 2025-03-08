@@ -29,95 +29,82 @@ app.get('/', (req, res) => {
   });
 });
 
-// Test endpoint
-app.post('/test', (req, res) => {
-  console.log('Test endpoint hit:', {
-    body: req.body,
-    headers: req.headers
-  });
-  res.status(200).json({
-    status: 'success',
-    receivedData: req.body,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Validation endpoint
 app.post('/validation', (req, res) => {
-  console.log('Validation request received:', {
-    body: req.body,
-    headers: req.headers
-  });
-  
   try {
-    res.status(200).json({
-      ResultCode: "0",
-      ResultDesc: "Accepted"
+    // Log the full validation request
+    console.log('\n=== Validation Request ===');
+    console.log({
+      TransactionType: req.body.TransactionType,
+      TransID: req.body.TransID,
+      TransTime: req.body.TransTime,
+      TransAmount: req.body.TransAmount,
+      BusinessShortCode: req.body.BusinessShortCode,
+      BillRefNumber: req.body.BillRefNumber,
+      InvoiceNumber: req.body.InvoiceNumber,
+      OrgAccountBalance: req.body.OrgAccountBalance,
+      ThirdPartyTransID: req.body.ThirdPartyTransID,
+      MSISDN: req.body.MSISDN,
+      FirstName: req.body.FirstName,
+      MiddleName: req.body.MiddleName,
+      LastName: req.body.LastName
     });
-    console.log('Validation response sent successfully');
+
+    // Validate the transaction (you can add your validation logic here)
+    const isValid = true; // Replace with your validation logic
+
+    if (isValid) {
+      res.status(200).json({
+        ResultCode: "0",
+        ResultDesc: "Accepted"
+      });
+    } else {
+      res.status(200).json({
+        ResultCode: "C2B00011",
+        ResultDesc: "Rejected"
+      });
+    }
   } catch (error) {
-    console.error('Error in validation:', error);
+    console.error('Validation Error:', error);
     res.status(200).json({
-      ResultCode: "1",
-      ResultDesc: `Error: ${error.message}`
+      ResultCode: "C2B00016",
+      ResultDesc: "Other Error"
     });
   }
 });
 
 // Confirmation endpoint
 app.post('/confirmation', (req, res) => {
-  console.log('Confirmation request received:', {
-    body: req.body,
-    headers: req.headers,
-    timestamp: new Date().toISOString()
-  });
-
   try {
-    // Log the successful processing
-    console.log('Processing confirmation request');
-    
+    // Log the full confirmation request
+    console.log('\n=== Confirmation Request ===');
+    console.log({
+      TransactionType: req.body.TransactionType,
+      TransID: req.body.TransID,
+      TransTime: req.body.TransTime,
+      TransAmount: req.body.TransAmount,
+      BusinessShortCode: req.body.BusinessShortCode,
+      BillRefNumber: req.body.BillRefNumber,
+      InvoiceNumber: req.body.InvoiceNumber,
+      OrgAccountBalance: req.body.OrgAccountBalance,
+      ThirdPartyTransID: req.body.ThirdPartyTransID,
+      MSISDN: req.body.MSISDN,
+      FirstName: req.body.FirstName,
+      MiddleName: req.body.MiddleName,
+      LastName: req.body.LastName
+    });
+
     res.status(200).json({
       ResultCode: "0",
       ResultDesc: "Success"
     });
-    
-    console.log('Confirmation response sent successfully');
   } catch (error) {
-    console.error('Error processing confirmation:', error);
+    console.error('Confirmation Error:', error);
     res.status(200).json({
       ResultCode: "1",
-      ResultDesc: "Internal error"
+      ResultDesc: "Internal Error"
     });
   }
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Global error handler:', {
-    error: err.message,
-    stack: err.stack,
-    path: req.path,
-    body: req.body,
-    timestamp: new Date().toISOString()
-  });
-  
-  res.status(200).json({
-    ResultCode: "1",
-    ResultDesc: `Error: ${err.message}`
-  });
-});
-
-// Start server with proper error handling
-const port = process.env.PORT || 3000;
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Server timestamp: ${new Date().toISOString()}`);
-  console.log('Environment:', process.env.NODE_ENV);
-});
-
-// Handle server errors
-server.on('error', (error) => {
-  console.error('Server error:', error);
 });
 
 process.on('uncaughtException', (error) => {
@@ -126,4 +113,13 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled rejection:', error);
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
+  console.log('Waiting for M-Pesa callbacks...');
+  console.log('Endpoints:');
+  console.log(`- Validation URL: ${process.env.NGROK_URL}/validation`);
+  console.log(`- Confirmation URL: ${process.env.NGROK_URL}/confirmation`);
 });
