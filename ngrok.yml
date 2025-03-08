@@ -1,0 +1,5 @@
+authtoken: 2u1PSm5hhixhu0ZJ4xAtan8ek41_RXwSTehYZmPyjMYpEJ8Y
+tunnels:
+  daraja:
+    addr: 3000
+    proto: http
