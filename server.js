@@ -50,24 +50,26 @@ app.post('/validation', (req, res) => {
       LastName: req.body.LastName
     });
 
-    // Validate the transaction (you can add your validation logic here)
-    const isValid = true; // Replace with your validation logic
+    // Add your validation logic here
+    const isValid = validateTransaction(req.body); // Replace with your validation logic
 
     if (isValid) {
+      // Accept the transaction
       res.status(200).json({
         ResultCode: "0",
         ResultDesc: "Accepted"
       });
     } else {
+      // Reject the transaction with an appropriate error code
       res.status(200).json({
-        ResultCode: "C2B00011",
+        ResultCode: "C2B00011", // Example: Invalid MSISDN
         ResultDesc: "Rejected"
       });
     }
   } catch (error) {
     console.error('Validation Error:', error);
     res.status(200).json({
-      ResultCode: "C2B00016",
+      ResultCode: "C2B00016", // Other Error
       ResultDesc: "Other Error"
     });
   }
@@ -94,6 +96,7 @@ app.post('/confirmation', (req, res) => {
       LastName: req.body.LastName
     });
 
+    // Always acknowledge the confirmation
     res.status(200).json({
       ResultCode: "0",
       ResultDesc: "Success"
@@ -106,6 +109,22 @@ app.post('/confirmation', (req, res) => {
     });
   }
 });
+
+// Example validation logic (replace with your actual logic)
+function validateTransaction(transaction) {
+  // Example: Validate the MSISDN (phone number)
+  if (!transaction.MSISDN || !transaction.MSISDN.startsWith('254')) {
+    return false; // Reject if MSISDN is invalid
+  }
+
+  // Example: Validate the transaction amount
+  if (transaction.TransAmount <= 0) {
+    return false; // Reject if amount is invalid
+  }
+
+  // Add more validation rules as needed
+  return true; // Accept the transaction
+}
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught exception:', error);
